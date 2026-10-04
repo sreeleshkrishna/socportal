@@ -1,0 +1,41 @@
+{
+  "realm": "soc",
+  "enabled": true,
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "tier1_analyst" },
+      { "name": "tier2_analyst" },
+      { "name": "incident_responder" },
+      { "name": "soc_manager" },
+      { "name": "auditor" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "soc-portal",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    }
+  ],
+  "users": [
+    { "username": "t1.alice", "enabled": true, "emailVerified": true, "email": "t1.alice@soc.local", "firstName": "Alice", "lastName": "Tier1",
+      "credentials": [{ "type": "password", "value": "Passw0rd!dev", "temporary": false }], "realmRoles": ["tier1_analyst"] },
+    { "username": "t2.bob", "enabled": true, "emailVerified": true, "email": "t2.bob@soc.local", "firstName": "Bob", "lastName": "Tier2",
+      "credentials": [{ "type": "password", "value": "Passw0rd!dev", "temporary": false }], "realmRoles": ["tier2_analyst"] },
+    { "username": "ir.carol", "enabled": true, "emailVerified": true, "email": "ir.carol@soc.local", "firstName": "Carol", "lastName": "Responder",
+      "credentials": [{ "type": "password", "value": "Passw0rd!dev", "temporary": false }], "realmRoles": ["incident_responder"] },
+    { "username": "mgr.dave", "enabled": true, "emailVerified": true, "email": "mgr.dave@soc.local", "firstName": "Dave", "lastName": "Manager",
+      "credentials": [{ "type": "password", "value": "Passw0rd!dev", "temporary": false }], "realmRoles": ["soc_manager"] },
+    { "username": "aud.erin", "enabled": true, "emailVerified": true, "email": "aud.erin@soc.local", "firstName": "Erin", "lastName": "Auditor",
+      "credentials": [{ "type": "password", "value": "Passw0rd!dev", "temporary": false }], "realmRoles": ["auditor"] }
+  ]
+}
