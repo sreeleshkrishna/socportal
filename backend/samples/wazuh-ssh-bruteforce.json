@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-10-05T09:15:32.123+0000",
+  "rule": {
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system.",
+    "id": "5712",
+    "mitre": { "id": ["T1110"], "tactic": ["Credential Access"], "technique": ["Brute Force"] }
+  },
+  "agent": { "id": "001", "name": "ubuntu-lab", "ip": "192.168.56.20" },
+  "id": "1759655732.12345",
+  "full_log": "Oct  5 09:15:32 ubuntu-lab sshd[1234]: Failed password for invalid user admin from 192.168.56.1 port 50544 ssh2",
+  "data": { "srcip": "192.168.56.1", "srcuser": "admin" }
+}

@@ -4,3 +4,17 @@ coverage/
 .env
 *.log
 .vite/
+
+evidence-data/
+
+enterprise-attack.json
+
+backups/
+security-reports/
+loadtest/summary.json
+
+backups/
+security-reports/
+loadtest/summary.json
+
+docs/test-results.json

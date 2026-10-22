@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.env
+evidence-data
+tests
+scripts
+samples

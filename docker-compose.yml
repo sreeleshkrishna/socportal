@@ -1,12 +1,43 @@
+﻿name: socportal
+
+x-backend: &backend
+  build: ./backend
+  image: socportal-backend
+
+# Values that differ between "API on my laptop" and "API in Docker"
+x-api-env: &api-env
+  PORT: "4000"
+  DATABASE_URL: postgres://soc:${APP_DB_PASSWORD}@db:5432/socportal
+  OIDC_ISSUER: https://localhost:8443/realms/soc
+  OIDC_JWKS_URL: http://keycloak:8080/realms/soc/protocol/openid-connect/certs
+  CORS_ORIGIN: https://localhost
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
+  EVIDENCE_STORE: s3
+  S3_ENDPOINT: http://rustfs:9000
+  TRUST_PROXY: "1"
+  RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-3000}
+
 services:
+  # one-time self-signed certificate for the gateway
+  certs:
+    image: alpine/openssl
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        [ -f /certs/server.crt ] || openssl req -x509 -newkey rsa:2048 -nodes -keyout /certs/server.key -out /certs/server.crt -days 365 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+    volumes:
+      - certs:/certs
+    restart: "no"
+
   db:
     image: postgres:17
     environment:
       POSTGRES_USER: soc
-      POSTGRES_PASSWORD: sreeleshkrishna
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
       POSTGRES_DB: socportal
     ports:
-      - "15432:5432"
+      - "127.0.0.1:15432:5432"
     volumes:
       - app_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -14,12 +45,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   keycloak-db:
     image: postgres:17
     environment:
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: sreeleshkrishna
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
       POSTGRES_DB: keycloak
     volumes:
       - kc_db_data:/var/lib/postgresql/data
@@ -28,25 +60,133 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.4
-    command: start-dev --import-realm
+    command: start --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: sreeleshkrishna
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: sreeleshkrishna
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_HOSTNAME: https://localhost:8443
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
     ports:
-      - "8180:8080"
+      - "127.0.0.1:8180:8080"
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
     depends_on:
       keycloak-db:
         condition: service_healthy
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    restart: unless-stopped
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - rustfs_data:/data
+    restart: unless-stopped
+
+  # applies database migrations, then exits
+  migrate:
+    <<: *backend
+    command: ["node", "dist/db/migrate.js"]
+    env_file: ./backend/.env
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *backend
+    env_file: ./backend/.env
+    environment: *api-env
+    ports:
+      # lab exception: the Wazuh VM posts alerts here (shared-secret protected); in production use the gateway
+      - "4000:4000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rustfs:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: ["node", "dist/worker.js"]
+    env_file: ./backend/.env
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8443:8443"
+    volumes:
+      - certs:/etc/nginx/certs:ro
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+
+  # daily database backup (14 days kept); first backup runs at start-up
+  backup:
+    image: postgres:17
+    environment:
+      PGPASSWORD: ${APP_DB_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          pg_dump -h db -U soc -d socportal -Fc -f /backups/socportal-$$(date +%Y%m%d-%H%M%S).dump
+          find /backups -name 'socportal-*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+    restart: unless-stopped
 
 volumes:
   app_db_data:
   kc_db_data:
+  rustfs_data:
+  certs:

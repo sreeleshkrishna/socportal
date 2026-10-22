@@ -8,9 +8,9 @@ import { makePool } from './testDb.js';
 const pool = makePool();
 const app = buildTestApp(pool);
 const ID = '99999999-9999-4999-8999-999999999999';
-const url = (p: string) => p.replace(':id', ID);
-const send = (method: 'get' | 'post' | 'patch', path: string) => request(app)[method](url(path));
-
+const url = (p: string) =>
+  p.replace(':id', ID).replace(':evidenceId', ID).replace(':iocId', ID).replace(':techniqueId', 'T1110').replace(':version', '1');
+const send = (method: 'get' | 'post' | 'patch' | 'delete', path: string) => request(app)[method](url(path));
 afterAll(() => pool.end());
 
 describe('public endpoints', () => {

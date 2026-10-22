@@ -1,0 +1,9 @@
+{
+  "id": "gen-0001",
+  "rule_id": "R-100",
+  "rule_name": "Impossible travel login",
+  "severity": "medium",
+  "host": "vpn-gw",
+  "src_ip": "203.0.113.50",
+  "description": "Same user logged in from two countries within 10 minutes"
+}

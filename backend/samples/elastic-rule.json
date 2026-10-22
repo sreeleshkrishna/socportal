@@ -1,0 +1,8 @@
+{
+  "alert_id": "elastic-demo-0001",
+  "rule": { "id": "a1b2c3", "name": "Suspicious PowerShell Download", "severity": "high", "risk_score": 73 },
+  "host": { "name": "win-lab-01" },
+  "source": { "ip": "10.0.0.15" },
+  "@timestamp": "2026-10-05T10:00:00Z",
+  "reason": "powershell.exe downloaded a file from the internet"
+}

@@ -2,6 +2,12 @@
   "realm": "soc",
   "enabled": true,
   "registrationAllowed": false,
+  "sslRequired": "external",
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "permanentLockout": false,
   "roles": {
     "realm": [
       { "name": "tier1_analyst" },
@@ -18,11 +24,11 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:5173/*"],
-      "webOrigins": ["http://localhost:5173"],
+      "redirectUris": ["https://localhost/*"],
+      "webOrigins": ["https://localhost"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5173/*"
+        "post.logout.redirect.uris": "https://localhost/*"
       }
     }
   ],

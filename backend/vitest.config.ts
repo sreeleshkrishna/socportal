@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     globalSetup: ['tests/global-setup.ts'],
-    fileParallelism: false, // test files share one database
+    fileParallelism: false,
     testTimeout: 15000,
-    coverage: { provider: 'v8', include: ['src/**'], reporter: ['text', 'html'] },
+    coverage: { provider: 'v8', include: ['src/**'], reporter: ['text', 'html', 'json-summary'] },
   },
 });

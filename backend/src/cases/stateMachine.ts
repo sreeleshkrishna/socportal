@@ -12,6 +12,7 @@ export interface Transition {
   to: Status;
   permission: Permission;
   requires?: Field;
+  systemOnly?: boolean; // performed by the SLA worker, never by a user
 }
 
 // Anything not listed here is rejected with 409.
@@ -27,6 +28,9 @@ export const TRANSITIONS: readonly Transition[] = [
   { from: 'contained',   to: 'in_progress', permission: 'case:update',   requires: 'reason' }, // containment failed
   { from: 'resolved',    to: 'closed',      permission: 'case:close' },
   { from: 'resolved',    to: 'in_progress', permission: 'case:update',   requires: 'reason' }, // reopen
+  // Automatic escalation on SLA breach
+  { from: 'new',    to: 'escalated', permission: 'system:escalate', requires: 'reason', systemOnly: true },
+  { from: 'triage', to: 'escalated', permission: 'system:escalate', requires: 'reason', systemOnly: true },
 ];
 
 export type TransitionCheck =
